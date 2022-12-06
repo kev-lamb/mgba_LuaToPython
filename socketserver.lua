@@ -43,6 +43,7 @@ function ST_received(id)
 	end
 end
 
+-- not being used right now
 function ST_scankeys()
 	local keys = emu:getKeys()
 	if keys ~= lastkeys then
@@ -56,9 +57,9 @@ function ST_scankeys()
 			end
 		end
 		msg = msg .. "]\n"
-		-- for id, sock in pairs(ST_sockets) do
-		-- 	if sock then sock:send(msg) end
-		-- end
+		for id, sock in pairs(ST_sockets) do
+			if sock then sock:send(msg) end
+		end
 	end
 end
 
@@ -90,6 +91,7 @@ function ST_accept()
 	console:log(ST_format(id, "Connected"))
 end
 
+-- sends game state over all active socket connections every 60 frames
 function ST_poll()
     if emu:currentFrame() % 60 == 0 then
         local state = ST_getstate()
@@ -101,7 +103,7 @@ function ST_poll()
 end
 
 
-callbacks:add("keysRead", ST_scankeys)
+-- callbacks:add("keysRead", ST_scankeys)
 callbacks:add("frame", ST_poll)
 
 local port = 8888
