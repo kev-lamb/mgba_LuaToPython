@@ -1,0 +1,17 @@
+Metrics to Track?
+
+Number of Gym Badges (main success metric, very infrequent so need lower level frequent goals)
+^^^
+(How to track Elite Four progression? One time reward for beating each, but then if the AI loses after the first, there's no known incentive to try again --> beating 1st again gives no points.
+Can maybe give big first time reward and then smaller reward for successive defeats --> probably won't encourage degenerate gameplay of beating 1st and trying to immediately reset for another easy win
+because you can't leave w/o losing, but the AI will try and win the 2nd battle hopefully)
+
+Levels of Pokemon in Party (rewards corresponding to avg level or sum of levels to incentivize training)
+
+Coordinate/Location (to track exploration --> reward traversal to new locations to incentivize moving to the next part of the map)
+
+Health of Friendly/Enemy Pokemon (so the agent learns how to win battles --> lower enemy health but keep yours high)
+
+Time Taken (negative points for time taken to encourage the AI to act in a timely manner)
+
+Anything else???
