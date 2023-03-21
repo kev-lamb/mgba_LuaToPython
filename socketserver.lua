@@ -3,6 +3,8 @@ server = nil
 ST_sockets = {}
 nextID = 1
 
+local partyGetter = require"battledata"
+
 local KEY_NAMES = { "A", "B", "s", "S", "<", ">", "^", "v", "R", "L" }
 
 function ST_stop(id)
@@ -32,6 +34,10 @@ function ST_received(id)
 	while true do
 		local p, err = sock:receive(1024)
 		if p then
+            -- console:log(p:match("^(.-)%s*$"))
+            -- emu:clearKeys(0)
+            -- emu:addKey(0)
+            -- emu:runFrame()
 			console:log(ST_format(id, p:match("^(.-)%s*$")))
 		else
 			if err ~= socket.ERRORS.AGAIN then
@@ -63,6 +69,20 @@ function ST_scankeys()
 	end
 end
 
+function printkeys()
+    local msg = "["
+	for i, k in ipairs(KEY_NAMES) do
+		if (keys & (1 << (i - 1))) == 0 then
+			msg = msg .. " "
+		else
+			msg = msg .. k;
+		end
+	end
+	msg = msg .. "]\n"
+    return msg
+end
+
+
 function ST_getstate()
 	local keys = emu:getKeys()
 	local msg = "["
@@ -74,6 +94,10 @@ function ST_getstate()
 		end
 	end
 	msg = msg .. "]\n"
+    msg = msg .. partyString
+    msg = msg .. enemyString
+    -- msg = msg .. partyGetter.partyStatus(game)
+    -- console:log("hello")
 	return msg
 end
 
@@ -93,9 +117,10 @@ end
 
 -- sends game state over all active socket connections every 60 frames
 function ST_poll()
+    -- console:log(ST_getstate())
     if emu:currentFrame() % 60 == 0 then
         local state = ST_getstate()
-        console:log(state)
+        -- console:log(state)
         for id, sock in pairs(ST_sockets) do
 			if sock then sock:send(state) end
 		end
