@@ -3,6 +3,8 @@ server = nil
 ST_sockets = {}
 nextID = 1
 
+desired_move = nil
+
 local partyGetter = require"battledata"
 
 local KEY_NAMES = { "A", "B", "s", "S", "<", ">", "^", "v", "R", "L" }
@@ -34,6 +36,9 @@ function ST_received(id)
 	while true do
 		local p, err = sock:receive(1024)
 		if p then
+			desired_move = tonumber(p) -- Convert received byte string to int
+			emu:setKeys(0) -- Reset pressed butttons
+			emu:addKey(desired_move) -- Press the desired button
             -- console:log(p:match("^(.-)%s*$"))
             -- emu:clearKeys(0)
             -- emu:addKey(0)
