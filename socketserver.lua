@@ -4,6 +4,14 @@ ST_sockets = {}
 nextID = 1
 
 desired_move = nil
+memorybuffer = console:createBuffer("Memory") -- used for debugging
+battleflag = "emu:read32(0x4000)"
+
+modebuffer = console:createBuffer("Agent Mode") -- tells us whether we are acting in traversal or battle mode
+modebuffer:print("Traversal Mode") -- we start in traversal mode
+
+traversal = true
+
 
 local partyGetter = require"battledata"
 
@@ -133,6 +141,7 @@ end
 -- sends game state over all active socket connections every 60 frames
 function ST_poll()
     -- console:log(ST_getstate())
+    -- printMemoryOfInterest(memorybuffer)
     if emu:currentFrame() % 60 == 0 then
         local state = ST_getstate()
         -- console:log(state)
@@ -142,9 +151,96 @@ function ST_poll()
     end
 end
 
+function printMemoryOfInterest(buffer)
+    -- buffer:clear()
+    local stuff = emu:read32(0x4000)
+    -- local wildflag = emu:read8(0x8c1)
+    -- local tempvars = emu:read32(0x4000)
+    if stuff ~= battleflag then
+        battleflag = stuff
+        console:log(string.format("%x",stuff))
+    end
+    -- buffer:print(string.format("0x4000 = %x\n 0x4001 = %x\n 0x4002 = %x\n 0x4003 = %x\n 0x4004 = %x\n 0x4005 = %x\n 0x4006 = %x\n 0x4007 = %x\n 0x4008 = %x\n 0x4009 = %x\n 0x400A = %x\n 0x400B = %x, 0x400C = %x\n 0x400D = %x\n 0x400F = %x",
+    -- emu:read8(0x4000),
+    -- emu:read8(0x4001),
+    -- emu:read8(0x4002),
+    -- emu:read8(0x4003),
+    -- emu:read8(0x4004),
+    -- emu:read8(0x4005),
+    -- emu:read8(0x4006),
+    -- emu:read8(0x4007),
+    -- emu:read8(0x4008),
+    -- emu:read8(0x4009),
+    -- emu:read8(0x400a),
+    -- emu:read8(0x400b),
+    -- emu:read8(0x400c),
+    -- emu:read8(0x400d),
+    -- emu:read8(0x400e),
+    -- emu:read8(0x400f)))
+    -- if battleflag ~= emu:read32(0x4000) then
+    --     battleflag = emu:read32(0x00)
+    --     console:log(string.format("battle flag changed to %x!", battleflag))
+    -- end
+
+end
+
+function traversalHandler()
+    -- switch to battle mode if we have entered a battle
+    -- console:log("in traversal handler")
+    if enteredBattle() then
+        -- change to battle mode
+        modebuffer:clear()
+        modebuffer:print("Battle Mode")
+        traversal = false
+        return
+    end
+
+    --otherwise run the traversal agent
+    -- NORMAL TRAVERSALE STUFF GOES HERE
+    ST_poll()
+end
+
+function battleHandler()
+    --switch to traversale mode if the battle 
+    -- console:log("in the battle handler")
+    if battleOver() then
+        -- change to traversal mode
+        modebuffer:clear()
+        modebuffer:print("Traversal Mode")
+        traversal = true
+        return
+    end
+
+    --otherwise run the battling agent
+    -- BATTLE AGENT STUFF GOES HERE
+    ST_poll()
+
+end
+
+function agent_Action()
+    if traversal then
+        traversalHandler()
+        return
+    end
+    battleHandler()
+end
+
+-- booleans for traversal vs. battle mode
+
+function enteredBattle()
+    -- if we were in traversal mode and the enemy party has changed, we entered a battle
+    return emu:getKeys() == 4
+end
+
+function battleOver()
+    -- if we win, we know battle is over because all enemy hps are at 0
+    -- if we lose, we white out and out location changes (battle over if zoneid changes when in battle mode)
+    return emu:getKeys() == 8
+end
+
 
 -- callbacks:add("keysRead", ST_scankeys)
-callbacks:add("frame", ST_poll)
+callbacks:add("frame", agent_Action)
 
 local port = 8888
 server = nil
@@ -169,3 +265,4 @@ while not server do
 		end
 	end
 end
+
