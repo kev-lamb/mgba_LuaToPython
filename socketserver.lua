@@ -101,6 +101,7 @@ function ST_getstate()
 	msg = msg .. "]\n"
     msg = msg .. partyString
     msg = msg .. enemyString
+	msg = msg .. ST_getlocation()
     -- msg = msg .. partyGetter.partyStatus(game)
     -- console:log("hello")
 	return msg
@@ -118,6 +119,15 @@ function ST_accept()
 	sock:add("received", function() ST_received(id) end)
 	sock:add("error", function() ST_error(id) end)
 	console:log(ST_format(id, "Connected"))
+end
+
+-- Reads the current local X and Y coordinates as well as the Zone ID
+function ST_getlocation()
+	local x_coord = emu:read8(tonumber(0x02025A00)) -- X coord is the first byte at this offset
+	local y_coord = emu:read32(tonumber(0x02025A00)) >> 16 -- From this offset, we need to read the first 4 bytes, and then shift out the first 2 to get the Y coord
+	local zone_id = emu:read32(tonumber(0x02025A30)) >> 16 -- From this offset, we need to read the first 4 bytes, and then shift out the first 2 to get the zone ID
+	local msg = "[X: " .. x_coord .. ", Y: " .. y_coord .. ", Zone ID: " .. zone_id .. "]\n"
+	return msg
 end
 
 -- sends game state over all active socket connections every 60 frames
