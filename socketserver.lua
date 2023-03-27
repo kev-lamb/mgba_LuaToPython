@@ -12,6 +12,8 @@ modebuffer:print("Traversal Mode") -- we start in traversal mode
 
 traversal = true
 
+prevZoneID = 0
+zone_id = 0
 
 local partyGetter = require"battledata"
 
@@ -133,7 +135,8 @@ end
 function ST_getlocation()
 	local x_coord = emu:read8(tonumber(0x02025A00)) -- X coord is the first byte at this offset
 	local y_coord = emu:read32(tonumber(0x02025A00)) >> 16 -- From this offset, we need to read the first 4 bytes, and then shift out the first 2 to get the Y coord
-	local zone_id = emu:read32(tonumber(0x02025A30)) >> 16 -- From this offset, we need to read the first 4 bytes, and then shift out the first 2 to get the zone ID
+	prevZoneID = zone_id -- Before updating the zone ID, save the current one
+	zone_id = emu:read32(tonumber(0x02025A30)) >> 16 -- From this offset, we need to read the first 4 bytes, and then shift out the first 2 to get the zone ID
 	local msg = "[X: " .. x_coord .. ", Y: " .. y_coord .. ", Zone ID: " .. zone_id .. "]\n"
 	return msg
 end
@@ -201,7 +204,7 @@ function traversalHandler()
 end
 
 function battleHandler()
-    --switch to traversale mode if the battle 
+    --switch to traversal mode if the battle 
     -- console:log("in the battle handler")
     if battleOver() then
         -- change to traversal mode
@@ -229,13 +232,24 @@ end
 
 function enteredBattle()
     -- if we were in traversal mode and the enemy party has changed, we entered a battle
-    return emu:getKeys() == 4
+	if (enemyString ~= prevEnemyString) then
+		return true
+	end
+
+	return false
 end
 
 function battleOver()
     -- if we win, we know battle is over because all enemy hps are at 0
+	if (all_enemy_ko) then
+		return true
+	end
     -- if we lose, we white out and out location changes (battle over if zoneid changes when in battle mode)
-    return emu:getKeys() == 8
+	if (zone_id ~= prevZoneID) then
+		return true
+	end
+
+	return false
 end
 
 

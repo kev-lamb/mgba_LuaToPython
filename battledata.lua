@@ -2,6 +2,9 @@
 
 partyString = ""
 enemyString = ""
+prevEnemyString = ""
+
+all_enemy_ko = false
 
 local Game = {
 	new = function (self, game)
@@ -654,30 +657,33 @@ end
 
 function enemyStatus(game)
     data = ""
-    -- for _, mon in ipairs(game:getEnemy()) do
-	-- 	data = data .. string.format("(%10s %s): %3i/%3i\nAtk:%3i\nDef%3i\nSpA%3i\nSpD%3i\nSpe%3i\n",
-    --     game:getSpeciesName(mon.species),
-    --     game:getSpeciesInfo(mon.species),
-    --     mon.hp,
-    --     mon.maxHP,
-    --     mon.attack,
-    --     mon.defense,
-    --     mon.spAttack,
-    --     mon.spDefense,
-    --     mon.speed)
+    for _, mon in ipairs(game:getEnemy()) do
+	 	data = data .. string.format("(%10s %s): %3i/%3i\nAtk:%3i\nDef%3i\nSpA%3i\nSpD%3i\nSpe%3i\n",
+    		game:getSpeciesName(mon.species),
+        	game:getSpeciesInfo(mon.species),
+        	mon.hp,
+        	mon.maxHP,
+        	mon.attack,
+        	mon.defense,
+        	mon.spAttack,
+        	mon.spDefense,
+        	mon.speed)
 
-    -- end
-    mon = game:getEnemy()[1]
-    data = data .. string.format("(%10s %s): %3i/%3i\nAtk:%3i\nDef%3i\nSpA%3i\nSpD%3i\nSpe%3i\n",
-        game:getSpeciesName(mon.species),
-        game:getSpeciesInfo(mon.species),
-        mon.hp,
-        mon.maxHP,
-        mon.attack,
-        mon.defense,
-        mon.spAttack,
-        mon.spDefense,
-        mon.speed)
+    end
+
+	all_enemy_ko = ((tonumber(game:getEnemy()[1].hp)) == 0) and ((tonumber(game:getEnemy()[2].hp)) == 0) and ((tonumber(game:getEnemy()[3].hp)) == 0) and ((tonumber(game:getEnemy()[4].hp)) == 0) and ((tonumber(game:getEnemy()[5].hp)) == 0) and ((tonumber(game:getEnemy()[6].hp)) == 0)
+
+    --mon = game:getEnemy()[1]
+    --data = data .. string.format("(%10s %s): %3i/%3i\nAtk:%3i\nDef%3i\nSpA%3i\nSpD%3i\nSpe%3i\n",
+    --    game:getSpeciesName(mon.species),
+    --    game:getSpeciesInfo(mon.species),
+    --    mon.hp,
+    --    mon.maxHP,
+    --    mon.attack,
+    --   mon.defense,
+    --    mon.spAttack,
+    --    mon.spDefense,
+     --   mon.speed)
     return data
 end
 
@@ -714,6 +720,7 @@ function sendParty()
         return
     end
     partyString = battledata(game)
+	prevEnemyString = enemyString -- Before updating the enemy string, store the current one
     enemyString = enemyStatus(game)
 end
 
