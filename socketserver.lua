@@ -1,3 +1,4 @@
+json = require "json"
 lastkeys = nil
 server = nil
 ST_sockets = {}
@@ -6,6 +7,7 @@ nextID = 1
 desired_move = nil
 memorybuffer = console:createBuffer("Memory") -- used for debugging
 battleflag = "emu:read32(0x4000)"
+locationString = ""
 
 modebuffer = console:createBuffer("Agent Mode") -- tells us whether we are acting in traversal or battle mode
 modebuffer:print("Traversal Mode") -- we start in traversal mode
@@ -97,24 +99,91 @@ function printkeys()
     return msg
 end
 
+--[[
+    game state is sent to the python client in json format for easy parsing
+    Example Traversal Mode Data:
+    {
+        "Mode" : "Traversal",
+        "Data" : {
+            "X" : x_pos,
+            "Y" : y_pos,
+            "Zone" : zone_id
+        }
+    }
+
+    Example Battle Mode Data:
+    {
+        "Mode" : "Battle",
+        "Data" : {
+            "Party" : [
+                {
+                    "Species" : "Torchic",
+                    "T1" : 10,
+                    "T2" : 1,
+                    "HP" : 18,
+                    "MaxHP" : 20,
+                    "Atk" : 12,
+                    "Def" : 9,
+                    "SpA" : 14,
+                    "SpD" : 10,
+                    "Spe" : 8,
+                    "Moves" : [
+                        {
+                            "Acc" : 100,
+                            "BP" : 40,
+                            "Eff" : 0,
+                            "Type" : 0
+                        },
+                        {
+                            "Acc" : 100,
+                            "BP" : 0,
+                            "Eff" : 18,
+                            "Type" : 0
+                        }
+                    ]
+
+                },
+                {
+                    MON 2 info
+                },
+                { ... }
+            ],
+            "Enemy" : {
+                "Species" : "Poochyena",
+                "T1" : 11,
+                "T2" : 11,
+                "HP" : 8,
+                "MaxHP" : 13,
+                "Atk" : 7,
+                "Def" : 6,
+                "SpA" : 6,
+                "Spe" : 5
+            }
+        }
+    }
+]]
+
 
 function ST_getstate()
-	local keys = emu:getKeys()
-	local msg = "["
-	for i, k in ipairs(KEY_NAMES) do
-		if (keys & (1 << (i - 1))) == 0 then
-			msg = msg .. " "
-		else
-			msg = msg .. k;
-		end
-	end
-	msg = msg .. "]\n"
-    msg = msg .. partyString
-    msg = msg .. enemyString
-	msg = msg .. ST_getlocation()
-    -- msg = msg .. partyGetter.partyStatus(game)
-    -- console:log("hello")
-	return msg
+	-- local keys = emu:getKeys()
+	-- local msg = "["
+	-- for i, k in ipairs(KEY_NAMES) do
+	-- 	if (keys & (1 << (i - 1))) == 0 then
+	-- 		msg = msg .. " "
+	-- 	else
+	-- 		msg = msg .. k;
+	-- 	end
+	-- end
+	-- msg = msg .. "]\n"
+    -- msg = msg .. statusString
+    -- -- msg = msg .. enemyString
+	-- msg = msg .. ST_getlocation()
+    -- -- msg = msg .. partyGetter.partyStatus(game)
+    -- -- console:log("hello")
+    if traversal then
+        return locationString
+    end
+    return statusString
 end
 
 function ST_accept()
@@ -137,6 +206,15 @@ function ST_getlocation()
 	local y_coord = emu:read32(tonumber(0x02025A00)) >> 16 -- From this offset, we need to read the first 4 bytes, and then shift out the first 2 to get the Y coord
 	prevZoneID = zone_id -- Before updating the zone ID, save the current one
 	zone_id = emu:read32(tonumber(0x02025A30)) >> 16 -- From this offset, we need to read the first 4 bytes, and then shift out the first 2 to get the zone ID
+    local location = {
+        Mode="Traversal",
+        Data={
+            x=x_coord,
+            y=y_coord,
+            zond=zone_id
+        }
+    }
+    locationString = json.encode(location)
 	local msg = "[X: " .. x_coord .. ", Y: " .. y_coord .. ", Zone ID: " .. zone_id .. "]\n"
 	return msg
 end
@@ -221,6 +299,7 @@ function battleHandler()
 end
 
 function agent_Action()
+    ST_getlocation()
     if traversal then
         traversalHandler()
         return

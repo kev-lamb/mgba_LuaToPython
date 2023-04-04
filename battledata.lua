@@ -1,6 +1,7 @@
 -- modified version of pokemon lua script provided in mgba example scripts package
-
-partyString = ""
+-- package.cpath = package.cpath .. ";/Users/kevlamb/.luarocks/lib/lua/5.4/?.so"
+json = require "json"
+statusString = ""
 enemyString = ""
 prevEnemyString = ""
 
@@ -26,8 +27,48 @@ function Game.getMove(game, moveNumber)
 
 end
 
-function Game.getParty(game)
+function Game.getPartyForModel(game)
 	local party = {}
+	local monStart = game._party
+	local nameStart = game._partyNames
+	local otStart = game._partyOt
+	for i = 1, emu:read8(game._partyCount) do
+		local mon = game:_readPartyMon(monStart, nameStart, otStart)
+        party[i] = {
+            species=mon.species,
+            t1=game:getSpeciesType(mon.species)["T1"],
+            t2=game:getSpeciesType(mon.species)["T2"],
+            hp=mon.hp,
+            maxHP=mon.maxHP,
+            atk=mon.attack,
+            def=mon.defense,
+            spa=mon.spAttack,
+            spd=mon.spDefense,
+            spe=mon.speed,
+        }
+        party[i].moves = {}
+        for j = 1, 4 do
+            party[i].moves[j] = {
+                acc=game:getMove(mon.moves[j])["accuracy"],
+                bp=game:getMove(mon.moves[j])["bp"],
+                eff=game:getMove(mon.moves[j])["effect"],
+                type=game:getMove(mon.moves[j])["type"]
+            }
+        end
+
+		monStart = monStart + game._partyMonSize
+        if game._partyNames then
+			nameStart = nameStart + game._monNameLength + 1
+		end
+		if game._partyOt then
+			otStart = otStart + game._playerNameLength + 1
+		end
+	end
+	return party
+end
+
+function Game.getParty(game)
+    local party = {}
 	local monStart = game._party
 	local nameStart = game._partyNames
 	local otStart = game._partyOt
@@ -42,6 +83,26 @@ function Game.getParty(game)
 		end
 	end
 	return party
+end
+
+function Game.getEnemyForModel(game)
+	local monStart = game._enemy
+	local nameStart = game._enemyNames
+	local otStart = game._enemyOt
+    local mon = game:_readPartyMon(monStart, nameStart, otStart)
+    local enemy = {
+        species=mon.species,
+        t1=game:getSpeciesType(mon.species)["T1"],
+        t2=game:getSpeciesType(mon.species)["T2"],
+        hp=mon.hp,
+        maxHP=mon.maxHP,
+        atk=mon.attack,
+        def=mon.defense,
+        spa=mon.spAttack,
+        spd=mon.spDefense,
+        spe=mon.speed,
+    }
+    return enemy
 end
 
 function Game.getEnemy(game)
@@ -88,6 +149,16 @@ function Game.getSpeciesName(game, id)
 	end
 	local pointer = game._speciesNameTable + (game._speciesNameLength) * id
 	return game:toString(emu.memory.cart0:readRange(pointer, game._monNameLength))
+end
+
+function Game.getSpeciesType(game, id)
+    local pointer = game._speciesTable + (game._speciesTableLength) * id
+    local lsb = emu.memory.cart0:read32(pointer)
+    local msb = emu.memory.cart0:read32(pointer + 4)
+    species = {}
+    species["T1"] = (msb & 0x00FF0000) >> 16
+    species["T2"] = msb >> 24
+    return species
 end
 
 function Game.getSpeciesInfo(game, id)
@@ -632,27 +703,29 @@ function battledata(game)
             game:getMove(mon.moves[i])["effect"],
             game:getMove(mon.moves[i])["type"])
         end
+        data = data .. mon
 	end
     return data
 end
 
 function partyStatus(game)
-    party = ""
-    for _, mon in ipairs(game:getParty()) do
-		party = party .. string.format("%-10s (Lv%3i %10s): %3i/%3i\nAtk:%3i\nDef%3i\nSpA%3i\nSpD%3i\nSpe%3i\nM1: %10s",
-        mon.nickname,
-        mon.level,
-        game:getSpeciesName(mon.species),
-        mon.hp,
-        mon.maxHP,
-        mon.attack,
-        mon.defense,
-        mon.spAttack,
-        mon.spDefense,
-        mon.speed,
-        mon.moves)
-	end
-    return party
+    -- party = ""
+    -- for _, mon in ipairs(game:getParty()) do
+	-- 	party = party .. string.format("%-10s (Lv%3i %10s): %3i/%3i\nAtk:%3i\nDef%3i\nSpA%3i\nSpD%3i\nSpe%3i\nM1: %10s",
+    --     mon.nickname,
+    --     mon.level,
+    --     game:getSpeciesName(mon.species),
+    --     mon.hp,
+    --     mon.maxHP,
+    --     mon.attack,
+    --     mon.defense,
+    --     mon.spAttack,
+    --     mon.spDefense,
+    --     mon.speed,
+    --     mon.moves)
+	-- end
+    -- return party
+    return json.encode(game:getPartyForModel())
 end
 
 function enemyStatus(game)
@@ -687,6 +760,21 @@ function enemyStatus(game)
     return data
 end
 
+function won_battle_check(game)
+    all_enemy_ko = ((tonumber(game:getEnemy()[1].hp)) == 0) and ((tonumber(game:getEnemy()[2].hp)) == 0) and ((tonumber(game:getEnemy()[3].hp)) == 0) and ((tonumber(game:getEnemy()[4].hp)) == 0) and ((tonumber(game:getEnemy()[5].hp)) == 0) and ((tonumber(game:getEnemy()[6].hp)) == 0)
+end
+
+function battleStatus(game)
+    local status = {
+        Mode="Battle",
+        Data={
+            Party=game:getPartyForModel(),
+            Enemy=game:getEnemyForModel()
+        }
+    }
+    return json.encode(status)
+end
+
 
 function detectGame()
 	local checksum = 0
@@ -719,7 +807,10 @@ function sendParty()
     if not game then
         return
     end
-    partyString = battledata(game)
+    -- statusString = battledata(game)
+    -- won_battle_check(game)
+    statusString = battleStatus(game)
+    -- statusString = partyStatus(game)
 	prevEnemyString = enemyString -- Before updating the enemy string, store the current one
     enemyString = enemyStatus(game)
 end
