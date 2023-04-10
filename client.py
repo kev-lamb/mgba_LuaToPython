@@ -11,12 +11,18 @@ from traversalagent import traversalagent, update_traversal_rewards
 last_action = 0
 #encode special actions when switching modes
 last_mode = "Traversal"
+visited_zoneIDs = set()
+visited_coords = {}
 
 async def handle_message(message):
+    global visited_zoneIDs
+    global visited_coords
     """Function to handle incoming messages"""
     try:
         data = json.loads(message)
         print(f"Received message: {data}")
+        # Points = (20 * # of zones visited) + (# of unique coordinates visited)
+        traversal_rewards = update_traversal_rewards(data, visited_zoneIDs, visited_coords)
         # Do something with the message data here
         action = decide_action(data)
         return action
@@ -35,8 +41,6 @@ async def websocket_client():
             data = await reader.read(1024)
             if not data:
                 break
-            # Points = (20 * # of zones visited) + (# of unique coordinates visited)
-            traversal_rewards = update_traversal_rewards(info, visited_zoneIDs, visited_coords)
             action = await handle_message(data.decode("utf-8"))
             writer.write(bytes(json.dumps(action), 'utf-8'))
     except ConnectionRefusedError:
