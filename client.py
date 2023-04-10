@@ -5,7 +5,7 @@ import random
 import math
 import json
 from battleagent import battleagent
-from traversalagent import traversalagent
+from traversalagent import traversalagent, update_traversal_rewards
 
 def decide_action(data):
     #logic for next move will come here
@@ -17,21 +17,25 @@ def decide_action(data):
     #if not in traversal mode, we are in battle mode
     return battleagent(data["Data"])
 
-
 def random_action():
     return math.floor(10 * random.random())
-
 
 HOST = '127.0.0.1'  # The remote host
 PORT = 8888          # The same port as used by the server
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     s.connect((HOST, PORT))
+    visited_zoneIDs = set()
+    visited_coords = {}
     #s.sendall(b'Hello, world') # NOTE: CAUSES ERROR/WARNING AS LUA SCRIPT TRIES TO USE AS A MOVE CHOICE
     while True:
         data = s.recv(1024)
         # print("yuh")
         print('Received', repr(data))
         info = json.loads(data)
+
+        # Points = (20 * # of zones visited) + (# of unique coordinates visited)
+        traversal_rewards = update_traversal_rewards(info, visited_zoneIDs, visited_coords)
+
         action = decide_action(info)
         s.sendall(bytes(str(action), 'utf-8'))
         time.sleep(1)
