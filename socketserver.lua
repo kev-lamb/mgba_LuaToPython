@@ -211,7 +211,7 @@ function ST_getlocation()
         Data={
             x=x_coord,
             y=y_coord,
-            zond=zone_id
+            zone=zone_id
         }
     }
     locationString = json.encode(location)
