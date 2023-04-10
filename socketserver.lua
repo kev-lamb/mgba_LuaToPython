@@ -17,9 +17,66 @@ traversal = true
 prevZoneID = 0
 zone_id = 0
 
+default_delay = 60
+input_delay = default_delay
+
 local partyGetter = require"battledata"
 
 local KEY_NAMES = { "A", "B", "s", "S", "<", ">", "^", "v", "R", "L" }
+
+-- queue data structure for next actions -- 
+action_q = {}
+action_q.first = 0
+action_q.last = -1
+action_q.data = {}
+-- insert action to back of the queue
+function insert(q, val)
+   q.last = q.last + 1
+   q.data[q.last] = val
+end
+-- pop the oldest action from the queue
+function remove(q)
+    local rval = {-1, default_delay}
+    if (q.first <= q.last) then
+        rval = q.data[q.first]
+        q.data[q.first] = nil
+        q.first = q.first + 1
+    end
+    return rval
+end
+-- set the buttons to reflect the oldest action from the client
+function perform_next_action(q)
+    --console:log(q.data)
+    local action = remove(q)
+
+    console:log(string.format("performing action %d", action[1]))
+    -- second number is the associated delay after pressing this input
+    input_delay = action[2]
+    emu:setKeys(0) -- Reset pressed butttons
+    -- first number is the actual button press
+	emu:addKey(action[1]) -- Press the desired button
+end
+-- given the provided list of actions, add them to the actions queue in the order they were provided
+function add_actions(actions, q)
+    for _, a in pairs(actions) do
+        -- if input delay is provided, use it
+        if type(a) == "table" then
+            insert(q, a)
+        else
+            -- if no input delay is provided, use default input delay
+            insert(q, {a, default_delay})
+        end
+    end
+end
+
+-- returns true if there are no elements in the queue
+function queue_is_empty(q)
+    return q.first > q.last
+    -- if val then
+    --     return true
+    -- end
+    -- return q.data[q.first] == nil
+end
 
 function ST_stop(id)
 	local sock = ST_sockets[id]
@@ -48,9 +105,15 @@ function ST_received(id)
 	while true do
 		local p, err = sock:receive(1024)
 		if p then
-			desired_move = tonumber(p) -- Convert received byte string to int
-			emu:setKeys(0) -- Reset pressed butttons
-			emu:addKey(desired_move) -- Press the desired button
+            local actions = json.decode(p)
+            -- console:log(string.format("Actions 1 is %d", actions[1]))
+            -- add all actions to the queue
+            add_actions(actions, action_q)
+			-- desired_move = tonumber(actions[1]) -- Convert received byte string to int
+            -- -- add the client action to the back of the action queue
+            -- insert(action_q, desired_move)
+			-- emu:setKeys(0) -- Reset pressed butttons
+			-- emu:addKey(desired_move) -- Press the desired button
             -- console:log(p:match("^(.-)%s*$"))
             -- emu:clearKeys(0)
             -- emu:addKey(0)
@@ -223,9 +286,19 @@ end
 function ST_poll()
     -- console:log(ST_getstate())
     -- printMemoryOfInterest(memorybuffer)
-    if emu:currentFrame() % 60 == 0 then
+    -- TODO: number of frames we wait should maybe be variable with the action returns from client?
+    --          this way we arent performing useless actions during animations in battle, for example
+    if emu:currentFrame() % input_delay == 0 then -- input delay is 60 frames by default
+        -- perform next action
+        perform_next_action(action_q)
         local state = ST_getstate()
         -- console:log(state)
+        -- only send state to client if we need a new action
+        if not queue_is_empty(action_q) then
+            -- console:log("no action needed")
+            return --if there are more button presses we dont need a new action yet
+        end
+        -- console:log("past getn")
         for id, sock in pairs(ST_sockets) do
 			if sock then sock:send(state) end
 		end
