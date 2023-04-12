@@ -4,6 +4,9 @@ server = nil
 ST_sockets = {}
 nextID = 1
 
+-- CHANGE THIS TO THE FULL FILEPATH FOR THE DIRECTORY YOU HAVE THE GITHUB CLONED INTO
+script_filepath = "/Users/kevlamb/penncode/cis400/luascripts/"
+
 desired_move = nil
 memorybuffer = console:createBuffer("Memory") -- used for debugging
 battleflag = "emu:read32(0x4000)"
@@ -99,6 +102,42 @@ function ST_error(id, err)
 	ST_stop(id)
 end
 
+-- TODO: implement function to reset emulator to save state file
+function loadState(filepath)
+    if emu:loadSaveFile(script_filepath .. filepath, 2) then
+        console:log(string.format("reset to save state %s", filepath))
+    else
+        console:log(string.format("unable to reset to save state %s", filepath))
+end
+
+-- used when the agent needs additional information outside of the normal state for the given mode
+-- ex: when training the battle agent and the battle ends, we are in traversal mode, but the agent
+--      needs the HP of the enemy mon to determine if the battle was won or lost
+--[[
+    example request formats:
+    {"battle"} -> send battle data
+    {"traversal"} -> send traversal data
+    {"reset", filepath} -> load savestate at filepath
+]]
+function send_requested_info(sock, request)
+    local req_type = request[1]
+    if req_type == "battle" then
+        -- need to send battle data to client
+		if sock then sock:send(statusString) end
+    elseif req_type == "traversal" then
+        -- need to send traversal data to client
+        if sock then sock:send(locationString) end
+    elseif req_type == "reset" then
+        -- load statefile provided as second argument of request
+        loadState(request[2])
+        -- send the initial state of this environment
+        if sock then sock:send(ST_getstate())
+    end
+    -- may need to add more cases here as we go on
+
+
+end
+
 function ST_received(id)
 	local sock = ST_sockets[id]
 	if not sock then return end
@@ -106,9 +145,14 @@ function ST_received(id)
 		local p, err = sock:receive(1024)
 		if p then
             local actions = json.decode(p)
-            -- console:log(string.format("Actions 1 is %d", actions[1]))
-            -- add all actions to the queue
-            add_actions(actions, action_q)
+
+            if type(actions[1]) == 'string' then
+                -- if message is a string, send the requested information back thru the socket
+                send_requested_info(sock, actions)
+            else
+                --otherwise weve received an action request, add to action queue
+                add_actions(actions, action_q)
+            end
 			-- desired_move = tonumber(actions[1]) -- Convert received byte string to int
             -- -- add the client action to the back of the action queue
             -- insert(action_q, desired_move)

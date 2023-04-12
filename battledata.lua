@@ -32,7 +32,8 @@ function Game.getPartyForModel(game)
 	local monStart = game._party
 	local nameStart = game._partyNames
 	local otStart = game._partyOt
-	for i = 1, emu:read8(game._partyCount) do
+    local partyCount = emu:read8(game._partyCount)
+	for i = 1, partyCount do
 		local mon = game:_readPartyMon(monStart, nameStart, otStart)
         party[i] = {
             species=mon.species,
@@ -64,6 +65,37 @@ function Game.getPartyForModel(game)
 			otStart = otStart + game._playerNameLength + 1
 		end
 	end
+    -- if we have less than 6 party members, fill the rest of the party with blank party members
+    -- so we have a constant number of inputs to the model
+    if partyCount == 6 then
+        -- full party, no need for further finangling
+        return party
+    end
+    -- not a full party, fill out with nonsense for clean model input
+    for i = partyCount+1, 6 do
+        -- add nonexistent part member of all 0s
+        party[i] = {
+            species=0,
+            t1=0,
+            t2=0,
+            hp=0,
+            maxHP=0,
+            atk=0,
+            def=0,
+            spa=0,
+            spd=0,
+            spe=0,
+        }
+        party[i].moves = {}
+        for j = 1, 4 do
+            party[i].moves[j] = {
+                acc=0,
+                bp=0,
+                eff=0,
+                type=0
+            }
+        end
+    end
 	return party
 end
 
