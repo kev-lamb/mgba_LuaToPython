@@ -7,7 +7,7 @@ import random
 #main traversal agent
 
 # for now, limit options to A, UP, DOWN, LEFT, RIGHT
-def traversalagent(data):
+def traversal_agent_choose_action(data):
     possible_actions = [0, 4, 5, 6, 7]
     #for now, do random agent
     decision = possible_actions[random_action()]
@@ -23,13 +23,13 @@ def update_traversal_rewards(data_loaded, visited_zoneIDs, visited_coords):
 
     if (mode == "Traversal"):
         
-        cur_zoneID = data_loaded["Data"]["zone"]
+        cur_zoneID = data_loaded["Traversal"]["zone"]
         visited_zoneIDs.add(cur_zoneID)
 
         #print("visited zoneIDs: ", visited_zoneIDs, "\n")
 
-        cur_x = data_loaded["Data"]["x"]
-        cur_y = data_loaded["Data"]["y"]
+        cur_x = data_loaded["Traversal"]["x"]
+        cur_y = data_loaded["Traversal"]["y"]
 
         coords_in_zoneID = visited_coords.get(cur_zoneID)
 
