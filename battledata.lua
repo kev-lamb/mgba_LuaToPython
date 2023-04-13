@@ -798,13 +798,10 @@ end
 
 function battleStatus(game)
     local status = {
-        Mode="Battle",
-        Data={
-            Party=game:getPartyForModel(),
-            Enemy=game:getEnemyForModel()
-        }
+        Party=game:getPartyForModel(),
+        Enemy=game:getEnemyForModel()
     }
-    return json.encode(status)
+    return status
 end
 
 
@@ -841,7 +838,8 @@ function sendParty()
     end
     -- statusString = battledata(game)
     -- won_battle_check(game)
-    statusString = battleStatus(game)
+    -- statusString = battleStatus(game)
+    gameState["Battle"] = battleStatus(game)
     -- statusString = partyStatus(game)
 	prevEnemyString = enemyString -- Before updating the enemy string, store the current one
     enemyString = enemyStatus(game)

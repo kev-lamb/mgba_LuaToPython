@@ -1,3 +1,5 @@
+import os
+import random
 import numpy as np
 import gymnasium as gym
 from gymnasium.spaces import Dict, Box, Discrete, Sequence, Tuple
@@ -80,10 +82,12 @@ class BattleEnv(gym.Env):
         self.reader, self.writer = await emulator_connect(port) #takes optional port object
         
 
-    async def reset(self, initial_state):
+    async def reset(self, initial_state_folder):
         # Reset the environment to its initial state and return the initial observation
         # based on the savestate, initial observation here would be different.
-        # I probably don't want any async code in this class, so maybe i feed in the initial state as an arg here
+        # get filepath to a random training save state
+        initial_state = initial_state_folder + "/" + random.choice(os.listdir(os.getcwd() + initial_state_folder))
+
         observation = await resetState(initial_state, self.reader, self.writer)
         self.observation = observation
         info = None #TODO: do i want anything here?
@@ -95,9 +99,11 @@ class BattleEnv(gym.Env):
         next_state = await performAction(action, self.reader, self.writer)
         done = next_state['Mode'] == "Traversal"
 
-        next_observation = None if done else next_state['Data']
+        next_observation = None if done else next_state['Battle']
+        # TODO: observation needs to be cleaned so its the same format as the observation space
 
-        reward = self.reward_function(self.observation, next_observation, done)
+        # passing in next_state['Battle'] instead of next observation so we can figure out if battle was won or lost if its over
+        reward = self.reward_function(self.observation, next_state['Battle'], done)
 
         info = {} # add debugging info here if needed
         info['Mode'] = next_state['Mode']

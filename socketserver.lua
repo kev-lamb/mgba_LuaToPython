@@ -11,6 +11,7 @@ desired_move = nil
 memorybuffer = console:createBuffer("Memory") -- used for debugging
 battleflag = "emu:read32(0x4000)"
 locationString = ""
+gameState = {}
 
 modebuffer = console:createBuffer("Agent Mode") -- tells us whether we are acting in traversal or battle mode
 modebuffer:print("Traversal Mode") -- we start in traversal mode
@@ -122,11 +123,11 @@ end
 function send_requested_info(sock, request)
     local req_type = request[1]
     if req_type == "battle" then
-        -- need to send battle data to client
-		if sock then sock:send(statusString) end
+        -- need to send battle data to client (shouldnt be happening anymore)
+		if sock then sock:send(json.encode(gameState["Battle"])) end
     elseif req_type == "traversal" then
-        -- need to send traversal data to client
-        if sock then sock:send(locationString) end
+        -- need to send traversal data to client (shouldnt be happening anymore)
+        if sock then sock:send(json.encode(gameState["Traversal"])) end
     elseif req_type == "reset" then
         -- load statefile provided as second argument of request
         loadState(request[2])
@@ -288,9 +289,11 @@ function ST_getstate()
     -- -- msg = msg .. partyGetter.partyStatus(game)
     -- -- console:log("hello")
     if traversal then
-        return locationString
+        gameState["Mode"] = "Traversal"
+    else
+        gameState["Mode"] = "Battle"
     end
-    return statusString
+    return json.encode(gameState)
 end
 
 function ST_accept()
@@ -314,13 +317,11 @@ function ST_getlocation()
 	prevZoneID = zone_id -- Before updating the zone ID, save the current one
 	zone_id = emu:read32(tonumber(0x02025A30)) >> 16 -- From this offset, we need to read the first 4 bytes, and then shift out the first 2 to get the zone ID
     local location = {
-        Mode="Traversal",
-        Data={
             x=x_coord,
             y=y_coord,
             zone=zone_id
         }
-    }
+    gameState["Traversal"] = location
     locationString = json.encode(location)
 	local msg = "[X: " .. x_coord .. ", Y: " .. y_coord .. ", Zone ID: " .. zone_id .. "]\n"
 	return msg
