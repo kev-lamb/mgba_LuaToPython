@@ -84,7 +84,7 @@ class BattleEnv(gym.Env):
         # Reset the environment to its initial state and return the initial observation
         # based on the savestate, initial observation here would be different.
         # I probably don't want any async code in this class, so maybe i feed in the initial state as an arg here
-        observation = await resetState(initial_state)
+        observation = await resetState(initial_state, self.reader, self.writer)
         self.observation = observation
         info = None #TODO: do i want anything here?
         return observation, info
@@ -92,7 +92,7 @@ class BattleEnv(gym.Env):
     # must be async because we need to communicate with the emulator
     async def step(self, action):
         # Execute the given action and return the new observation, reward, done, and info
-        next_state = await performAction(action)
+        next_state = await performAction(action, self.reader, self.writer)
         done = next_state['Mode'] == "Traversal"
 
         next_observation = None if done else next_state['Data']

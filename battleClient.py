@@ -4,11 +4,9 @@ import asyncio
 
 # Client meant exclusively for battling. Used for training the battle agent
 
-async def resetState(initialState, port = 8888):
-    reader, writer = await emulator_connect(port)
-
-    reset_msg = {}
-    reset_msg['Reset'] = initialState # should be a filepath to a save state
+async def resetState(initialState, reader, writer):
+    # tell emulator to load the save state at filepath initialState
+    reset_msg = ['reset', initialState]
 
     writer.write(bytes(json.dumps(reset_msg), 'utf-8'))
 
@@ -16,10 +14,7 @@ async def resetState(initialState, port = 8888):
     return json.loads(new_state.decode("utf-8"))
 
 
-async def performAction(action, port = 8888):
-    # establish connection with emulator
-    reader, writer = await emulator_connect(port)
-
+async def performAction(action, reader, writer):
     # convert provided action into appropriate emulator actions (maybe this should be done by the emulator long term?)
     action = emulator_action(action)
 
