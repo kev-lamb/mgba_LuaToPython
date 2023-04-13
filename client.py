@@ -6,7 +6,7 @@ import math
 import json
 import asyncio
 from battleagent import battleagent
-from traversalagent import traversalagent, update_traversal_rewards
+from traversalagent import traversal_agent_choose_action, update_traversal_rewards
 
 last_action = 0
 #encode special actions when switching modes

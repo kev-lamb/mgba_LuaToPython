@@ -110,6 +110,7 @@ function loadState(filepath)
     else
         console:log(string.format("unable to reset to save state %s", filepath))
 end
+end
 
 -- used when the agent needs additional information outside of the normal state for the given mode
 -- ex: when training the battle agent and the battle ends, we are in traversal mode, but the agent
@@ -135,8 +136,7 @@ function send_requested_info(sock, request)
         if sock then sock:send(ST_getstate())
     end
     -- may need to add more cases here as we go on
-
-
+end
 end
 
 function ST_received(id)
