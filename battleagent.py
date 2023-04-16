@@ -12,15 +12,15 @@ import random
 def battleagent(data, last_action):
     animation_delay = 800 #frames needed for attack animations to play out and user to get prompted for next attack
     potential_actions = []
-    s = [0, [0, animation_delay], 1]
-    r = [0, 4, [0, animation_delay], 1]
-    l = [0, 5, [0, animation_delay], 1]
-    u = [0, 6, [0, animation_delay], 1]
-    d = [0, 7, [0, animation_delay], 1]
-    rd = [0, 4, 7, [0, animation_delay], 1]
-    ld = [0, 5, 7, [0, animation_delay], 1]
-    ru = [0, 4, 6, [0, animation_delay], 1]
-    lu = [0, 5, 6, [0, animation_delay], 1]
+    s = [0, 5, 6, [0, animation_delay], 1, 6, 1, 6, 1, 6, [1, 500]]
+    r = [0, 5, 6, 4, [0, animation_delay], 1, 6, 1, 6, 1, 6, [1, 500]]
+    l = [0, 5, 6, 5, [0, animation_delay], 1, 6, 1, 6, 1, 6, [1, 500]]
+    u = [0, 5, 6, 6, [0, animation_delay], 1, 6, 1, 6, 1, 6, [1, 500]]
+    d = [0, 5, 6, 7, [0, animation_delay], 1, 6, 1, 6, 1, 6, [1, 500]]
+    rd = [0, 5, 6, 4, 7, [0, animation_delay], 1, 6, 1, 6, 1, 6, [1, 500]]
+    ld = [0, 5, 6, 5, 7, [0, animation_delay], 1, 6, 1, 6, 1, 6, [1, 500]]
+    ru = [0, 5, 6, 4, 6, [0, animation_delay], 1, 6, 1, 6, 1, 6, [1, 500]]
+    lu = [0, 5, 6, [0, animation_delay], 1, 6, 1, 6, 1, 6, [1, 500]]
 
     if last_action == 0:
         potential_actions = [s, r, d, rd]

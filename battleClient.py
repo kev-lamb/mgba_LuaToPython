@@ -10,8 +10,16 @@ async def resetState(initialState, reader, writer):
 
     writer.write(bytes(json.dumps(reset_msg), 'utf-8'))
 
-    new_state = await reader.read(1024)
+    new_state = await reader.read(4096)
     return json.loads(new_state.decode("utf-8"))
+
+async def getState(reader, writer):
+    req = ['battle']
+
+    writer.write(bytes(json.dumps(req), 'utf-8'))
+
+    state = await reader.read(4096)
+    return json.loads(state.decode("utf-8"))
 
 
 async def performAction(action, reader, writer):
@@ -22,7 +30,7 @@ async def performAction(action, reader, writer):
     writer.write(bytes(json.dumps(action), 'utf-8'))
 
     # return resulting emulator state once action has been performed
-    new_state = await reader.read(1024)
+    new_state = await reader.read(4096)
     return json.loads(new_state.decode("utf-8"))
 
 

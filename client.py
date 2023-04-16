@@ -38,7 +38,7 @@ async def websocket_client():
         reader, writer = await asyncio.open_connection(uri, port)
         print(f"Connected to WebSocket server at {uri}:{port}")
         while True:
-            data = await reader.read(1024)
+            data = await reader.read(4096)
             if not data:
                 break
             action = await handle_message(data.decode("utf-8"))
@@ -56,7 +56,7 @@ def decide_action(data):
     print(last_mode)
     if mode == "Traversal":
         last_mode = "Traversal"
-        return traversalagent(data["Data"])
+        return traversal_agent_choose_action(data["Traversal"])
 
     #if not in traversal mode, we are in battle mode
 
@@ -66,7 +66,7 @@ def decide_action(data):
         return [[0, 500], [1, 500], [0, 500], 1]
 
     global last_action
-    action, last_action = battleagent(data["Data"], last_action)
+    action, last_action = battleagent(data["Battle"], 0)
     return action
 
 def random_action():

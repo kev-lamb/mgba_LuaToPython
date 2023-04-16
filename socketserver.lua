@@ -5,13 +5,15 @@ ST_sockets = {}
 nextID = 1
 
 -- CHANGE THIS TO THE FULL FILEPATH FOR THE DIRECTORY YOU HAVE THE GITHUB CLONED INTO
-script_filepath = "/Users/kevlamb/penncode/cis400/luascripts/"
+script_filepath = "/Users/kevlamb/penncode/cis400/luascripts"
 
 desired_move = nil
 memorybuffer = console:createBuffer("Memory") -- used for debugging
 battleflag = "emu:read32(0x4000)"
 locationString = ""
 gameState = {}
+-- used so actions after input delay frames rather than when its just divisible
+last_action_frame = 0
 
 modebuffer = console:createBuffer("Agent Mode") -- tells us whether we are acting in traversal or battle mode
 modebuffer:print("Traversal Mode") -- we start in traversal mode
@@ -105,11 +107,11 @@ end
 
 -- TODO: implement function to reset emulator to save state file
 function loadState(filepath)
-    if emu:loadSaveFile(script_filepath .. filepath, 2) then
+    if emu:loadStateFile(script_filepath .. filepath, 2) then
         console:log(string.format("reset to save state %s", filepath))
     else
         console:log(string.format("unable to reset to save state %s", filepath))
-end
+    end
 end
 
 -- used when the agent needs additional information outside of the normal state for the given mode
@@ -131,12 +133,12 @@ function send_requested_info(sock, request)
         if sock then sock:send(json.encode(gameState["Traversal"])) end
     elseif req_type == "reset" then
         -- load statefile provided as second argument of request
+        console:log("resetting state")
         loadState(request[2])
         -- send the initial state of this environment
-        if sock then sock:send(ST_getstate())
+        if sock then sock:send(ST_getstate()) end
     end
     -- may need to add more cases here as we go on
-end
 end
 
 function ST_received(id)
@@ -327,13 +329,19 @@ function ST_getlocation()
 	return msg
 end
 
+function frame_dif(frame)
+    return frame - last_action_frame
+end
+
 -- sends game state over all active socket connections every 60 frames
 function ST_poll()
     -- console:log(ST_getstate())
     -- printMemoryOfInterest(memorybuffer)
     -- TODO: number of frames we wait should maybe be variable with the action returns from client?
     --          this way we arent performing useless actions during animations in battle, for example
-    if emu:currentFrame() % input_delay == 0 then -- input delay is 60 frames by default
+    if frame_dif(emu:currentFrame()) % input_delay == 0 then -- input delay is 60 frames by default
+        -- reset last action frame
+        last_action_frame = emu:currentFrame()
         -- perform next action
         perform_next_action(action_q)
         local state = ST_getstate()
