@@ -21,11 +21,42 @@ async def getState(reader, writer):
     state = await reader.read(4096)
     return json.loads(state.decode("utf-8"))
 
+async def performGeneralAction(action, mode, reader, writer):
+    # format the action appropriately based on the mode
+    if mode == 'Battle':
+        action = battle_action(action)
+    elif mode == 'Traversal':
+        action = traversal_action(action)
+    
+    # perform the action (if performing a flush action, no formatting occurs)
+    return await basicAction(action, reader, writer)
 
-async def performAction(action, reader, writer):
+
+async def performBattleAction(action, reader, writer):
     # convert provided action into appropriate emulator actions (maybe this should be done by the emulator long term?)
-    action = emulator_action(action)
+    return await basicAction(battle_action(action), reader, writer)
+    # action = battle_action(action)
 
+    # # send input action to the emulator for execution
+    # writer.write(bytes(json.dumps(action), 'utf-8'))
+
+    # # return resulting emulator state once action has been performed
+    # new_state = await reader.read(4096)
+    # return json.loads(new_state.decode("utf-8"))
+
+
+async def performTraversalAction(action, reader, writer):
+    return await basicAction(traversal_action(action), reader, writer)
+    # action = traversal_action(action)
+
+    # # send input action to the emulator for execution
+    # writer.write(bytes(json.dumps(action), 'utf-8'))
+
+    # # return resulting emulator state once action has been performed
+    # new_state = await reader.read(4096)
+    # return json.loads(new_state.decode("utf-8"))
+
+async def basicAction(action, reader, writer):
     # send input action to the emulator for execution
     writer.write(bytes(json.dumps(action), 'utf-8'))
 
@@ -58,7 +89,7 @@ async def emulator_connect(port = 8888):
 
 #helper functions
 
-def emulator_action(action):
+def battle_action(action):
     animation_delay = 800
     move1 = [0, 5, 6, [0, animation_delay], 1]
     move2 = [0, 5, 6, 4, [0, animation_delay], 1]
@@ -66,3 +97,9 @@ def emulator_action(action):
     move4 = [0, 5, 6, 4, 7, [0, animation_delay], 1]
     potential_actions = [move1, move2, move3, move4]
     return potential_actions[action]
+
+def traversal_action(action):
+    possible_actions = [0, 4, 5, 6, 7]
+    #for now, do random agent
+    decision = possible_actions[action]
+    return [[decision, 10]]

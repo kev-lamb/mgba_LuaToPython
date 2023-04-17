@@ -14,6 +14,9 @@ def traversal_agent_choose_action(data):
     action = [[decision, 10]]
     return action
 
+def dummy_traversal_policy(data):
+    return math.floor(5 * random.random())
+
 def random_action():
     return math.floor(5 * random.random())
 
